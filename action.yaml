@@ -1,11 +1,26 @@
-name: ''
-description: ''
+name: 'mockoon'
+description: 'Simplify API testing with mockoon'
 inputs:
-  who-to-greet:
-    description: 'Who to greet'
-    default: 'World'
+  tag:
+    description: 'mockoon-cli docker tag to use'
+    default: 'latest'
+  file:
+    description: 'API definition data'
+    required: true
+  inner_port:
+    description: 'Port to listen on within the container'
+    default: 3000
+  outer_port:
+    description: 'Port to listen on within the host'
+    default: 5000
 runs:
   using: "composite"
-  steps: 
-    - run: echo Hello NaN.
+  steps:
+    - name: Start mockoon
+      run: |
+        docker run -d --mount type=bind,source=${{ inputs.file }},target=/data,readonly \
+          -p ${{ inputs.outer_port }}:${{ inputs.inner_port }} mockoon/cli:${{ inputs.tag }} --data data --port ${{ inputs.inner_port }}
+      shell: bash
+    - name: Wait for API
+      run: curl --retry 10 --retry-delay 10 --retry-all-errors -s -o /dev/null localhost:${{ inputs.outer_port }}
       shell: bash
